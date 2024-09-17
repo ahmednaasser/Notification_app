@@ -1,6 +1,7 @@
 package com.example.notification_app
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.service.autofill.OnClickAction
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -57,8 +59,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                     ){
 
-                    val context = LocalContext.current
+                    if (showPermissionDeniedDialog.value)
+                        permissionDeniedDialog{
+                            showPermissionDeniedDialog.value = false
+                        }
 
+                    val context = LocalContext.current
                     Button(onClick = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                             handler.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -75,21 +81,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+    private var showPermissionDeniedDialog = mutableStateOf(false)
+
     private fun handlePermissionResponse (c:Context):ActivityResultLauncher<String>{
         val permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()){isGranted ->
                 if(isGranted){
                     sendNotification(c)
                 }else {
+                    showPermissionDeniedDialog.value = true
 
-                //show alert dialog
                 }
 
             }
         return permissionLauncher
     }
-
-    //implement Notification channe;
 
     private fun createNotificationChannel(){
         val importance = NotificationManager.IMPORTANCE_DEFAULT
@@ -99,9 +106,6 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }
-
-
-    // shkow the Notification
 
     @SuppressLint("MissingPermission")
     private fun sendNotification(c: Context){
@@ -128,6 +132,45 @@ class MainActivity : ComponentActivity() {
         NotificationManagerCompat.from(c).notify(66,builder)
 
     }
+
+    @Composable
+    fun permissionDeniedDialog( onActionClicked: () -> Unit) {
+        AlertDialog(
+            onDismissRequest = { },
+            confirmButton = {
+                TextButton(onClick = {
+                    val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    i.data = Uri.fromParts("package" ,
+                        "com.example.notification_app",
+                        null)
+                    startActivity(i)
+                    onActionClicked()
+
+                }) {
+                    Text("Allow")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    onActionClicked()
+                }) {
+                    Text("cancel")
+                }
+            },
+            icon = {
+                Icon(painter = painterResource(R.drawable.ic_warning),
+                    contentDescription = "warning")
+            },
+            title = {
+                Text(text = "we need your permissin to let the spider weave")
+            },
+            text ={
+                Text(text = stringResource(id = R.string.alert_content))
+
+            }
+            )
+    }
+    
 }
 
 

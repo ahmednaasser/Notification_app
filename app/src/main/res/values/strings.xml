@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Notification_App</string>
+    <string name="alert_content">The application relies on sending notifications. We require access to this permission to help you receive notifications about jetpack compose</string>
 </resources>
