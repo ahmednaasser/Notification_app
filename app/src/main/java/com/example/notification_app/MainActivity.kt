@@ -47,12 +47,26 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val handler = handlePermissionResponse(this)
+        createNotificationChannel()
+
         setContent {
             Notification_AppTheme {
                 Box (contentAlignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
                     ){
-                    Button(onClick = {}) {
+
+                    val context = LocalContext.current
+
+                    Button(onClick = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                            handler.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        else {
+
+                        }
+
+                    }) {
                         Text(text = "Notify Me")
                     }
                 }
@@ -61,11 +75,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handlePermissionResponse ():ActivityResultLauncher<String>{
+    private fun handlePermissionResponse (c:Context):ActivityResultLauncher<String>{
         val permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()){isGranted ->
                 if(isGranted){
-                    //sendNotifaication
+                    sendNotification(c)
                 }else {
 
                 //show alert dialog
@@ -73,6 +87,46 @@ class MainActivity : ComponentActivity() {
 
             }
         return permissionLauncher
+    }
+
+    //implement Notification channe;
+
+    private fun createNotificationChannel(){
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel("1" , "notificationChannel" , importance)
+        channel.description = "displays general notifications for applications "
+
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
+    }
+
+
+    // shkow the Notification
+
+    @SuppressLint("MissingPermission")
+    private fun sendNotification(c: Context){
+
+        val bitmap = BitmapFactory.decodeResource(c.resources, R.drawable.spider)
+        val spiderUri  = Uri.parse("https://www.marvel.com/characters/spider-man-peter-parker/on-screen/profile")
+        val intent = Intent(Intent.ACTION_VIEW, spiderUri)
+
+        val pendingIntent =
+            PendingIntent.getActivity(c , 0 , intent ,PendingIntent.FLAG_IMMUTABLE)
+
+        val builder  = NotificationCompat.Builder(c, "1")
+            .setSmallIcon(R.drawable.ic_flower)
+            .setContentTitle("New Notification")
+            .setContentText("I'm your friendly neighborhood Spider-Man ")
+            .setAutoCancel(true)
+            .setStyle(NotificationCompat.BigPictureStyle().bigPicture(bitmap))
+            .setContentIntent(pendingIntent)
+            .build()
+
+
+
+        //to make the notification appear
+        NotificationManagerCompat.from(c).notify(66,builder)
+
     }
 }
 
